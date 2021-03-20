@@ -15,6 +15,25 @@ class Sockets {
             // Events
             socket.emit('current-options', this.optionList.getOptions());
 
+            socket.on('vote-option', ({id}) => {
+                this.optionList.icreaseVotes(id);
+                this.io.emit('current-options', this.optionList.getOptions());
+            })
+
+            socket.on('delete-option', ({id}) => {
+                this.optionList.removeOption(id);
+                this.io.emit('current-options', this.optionList.getOptions());
+            });
+
+            socket.on('change-name-option', ({id, newName}) => {
+                this.optionList.changeName(id, newName);
+                this.io.emit('current-options', this.optionList.getOptions());
+            });
+
+            socket.on('create-option', ({name}) => {
+                this.optionList.addOption(name);
+                this.io.emit('current-options', this.optionList.getOptions());
+            });
         });
     }
 }

@@ -3,10 +3,7 @@ const Option = require('./option');
 class OptionList {
 
     constructor() {
-        this.options = [
-            new Option('Hooola'),
-            new Option('Mundo'),
-        ];
+        this.options = [];
     }
 
     addOption(name) {

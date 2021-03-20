@@ -1,25 +1,69 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
+import { SocketContext } from '../context/SocketContext';
 
-const OptionList = ({data}) => {
-    const [options, setOptions] = useState(data);
+const OptionList = () => {
+    const [options, setOptions] = useState([]);
+    const {socket} = useContext(SocketContext);
 
     useEffect(() => {
-        setOptions(data);
-    },[data]);
+        socket.on('current-options', (options) => {
+            setOptions(options)
+        })
+        return () => socket.off('current-options');
+    },[socket]);
+
+    const onChangeName = (event, id) => {
+        const newName = event.target.value;
+ 
+        setOptions(options => options.map(
+            option => {
+                if (option.id === id)
+                    option.name = newName;
+                return option;
+            }
+        ));
+    };
+
+    const onSubmitName = (event, id, newName) => {
+        event.preventDefault();
+        socket.emit('change-name-option', {id, newName});
+        console.log(id, newName);
+    };
+
+    const deleteOption = (id) => {
+        socket.emit('delete-option', {id:id});
+    };
+
+    const vote = (id) => {
+        socket.emit('vote-option', {id:id});
+    };
 
     const createRows = () => {
         return (
             options.map(option => (
                 <tr key={option.id}>
                     <td>
-                        <button className="btn btn-primary"> +1 </button>
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => vote(option.id)}
+                        
+                        > +1 </button>
                     </td>
                     <td>
-                        <input className="form-control" value={option.name}/>
+                        <form onSubmit={(event) => onSubmitName(event, option.id, option.name)}>
+                            <input 
+                                className="form-control"
+                                value={option.name}
+                                onChange={(event) => onChangeName(event, option.id)}
+                            />
+                        </form>
                     </td>
-                    <td> <h3>15</h3></td>
+                    <td> <h3>{option.votes}</h3></td>
                     <td>
-                        <button className="btn btn-danger">Delete</button>
+                        <button 
+                            className="btn btn-danger"
+                            onClick={(event) => deleteOption(option.id)}
+                        >Delete</button>
                     </td>
                 </tr>
             ))
