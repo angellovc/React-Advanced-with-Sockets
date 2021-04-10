@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
-import createMarker from '../helpers/createMapboxMarker';
+import {v4 as uuidV4} from 'uuid';
+import { Subject } from 'rxjs';
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiYXZjMTIzIiwiYSI6ImNrbjIwZGdxNzEzM3gybm1mZWg2ZjVhNnYifQ.boBQKHFUiu-nsDosXAdRJg';
 
@@ -9,11 +10,44 @@ const useMapbox = (initialValue) => {
     initialPoint.current = useMemo(() => ({...initialValue}), [initialValue]);
     const map = useRef();
     const mapContainer = useRef();
+
+    //observables rxjs
+    const movementMarker = useRef( new Subject());
+    const newMarker = useRef( new Subject());
+
     const [coords, setCoords] = useState(initialValue);
     const setMapReference = useCallback((node) => {
         mapContainer.current = node;
     }, []); 
     const markers = useRef({});
+
+    const addMarker = useCallback((event, id) => {
+        const {lng, lat} = event.lngLat || event;
+        const marker = new mapboxgl.Marker();
+        marker.id = id ?? uuidV4();
+        marker.setLngLat([lng, lat]).addTo(map.current).setDraggable(true);
+        markers.current[marker.id] = marker;
+
+        if (!id) {
+            newMarker.current.next({
+                id: marker.id,
+                lng,
+                lat
+            });
+        }
+        //listening marker movements
+        marker.on('drag', ({target}) => {
+            const {id} = target;
+            const {lng, lat} = target.getLngLat();
+            movementMarker.current.next({id, lng, lat})
+        })
+    }, []);
+
+    // Update marker location function
+    const updateMarkerLocation = useCallback(({id, lng, lat}) => {
+        console.log(id, lng, lat);
+        markers.current[id].setLngLat([lng, lat]);
+    }, []);
 
     useEffect(() => {
         map.current = new mapboxgl.Map({
@@ -39,15 +73,16 @@ const useMapbox = (initialValue) => {
 
     // add marks
     useEffect(() => {
-        map.current.on('click', (event) => {
-            const marker = createMarker(event.lngLat, map.current);
-            markers.current[marker.id] = marker;
-        });
-    }, []);
+        map.current.on('click', addMarker);
+    }, [addMarker]);
 
     return {
+        addMarker,
+        updateMarkerLocation,
         coords,
-        setMapReference
+        setMapReference,
+        newMarker$: newMarker.current,
+        movementMarker$: movementMarker.current
     }
 }
 

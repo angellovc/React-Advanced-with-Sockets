@@ -1,9 +1,12 @@
 import React from 'react'
+import { SocketProvider } from './context/socketContext'
 import MapPage from './pages/MapPage'
 
 const MapApp = () => {
     return (
-        <MapPage />
+        <SocketProvider>
+            <MapPage />
+        </SocketProvider>
     )
 }
 
